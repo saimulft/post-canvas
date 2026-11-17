@@ -1,6 +1,6 @@
 {
   "name": "post-canvas",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "A rich-text editor for posts and articles, built on Tiptap: formatting, tables and code, plus photo galleries (carousel, grid, masonry, collage), video and social embeds, link cards and drag-to-reorder blocks.",
   "keywords": [
     "editor",
