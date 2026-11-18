@@ -1,5 +1,12 @@
 # post-canvas
 
+## 0.1.1
+
+### Patch Changes
+
+- 6137169: Photos after the first in a gallery no longer sit lower than the first, and galleries and the photo manager no longer pick up the indent and markers of text lists.
+- 6137169: The README is now a visual tour: a screenshot of every feature (rich text and menus, mentions, the four gallery layouts and the collage editor, embeds and link cards, presets, HTML output and the sanitizer), each with a link to try it live. The package `homepage` now points at the website, https://postcanvas.saimulislam.com, and the description and keywords are updated.
+
 ## 0.1.0
 
 ### Minor Changes
