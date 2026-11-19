@@ -320,7 +320,7 @@ export function plainTextSlice(text: string, schema: Schema, $context: ResolvedP
   const paragraphType = schema.nodes.paragraph!;
   const hardBreak = schema.nodes.hardBreak;
   const blocks = normalized
-    .split(/\n[ \t]*\n+/)
+    .split(/\n(?:[ \t]*\n)+/)
     .map((block) => block.replace(/^\n+|\n+$/g, ''))
     .filter((block) => block.trim() !== '')
     .map((block) => {
