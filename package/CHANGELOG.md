@@ -1,5 +1,21 @@
 # post-canvas
 
+## 0.1.2
+
+### Patch Changes
+
+- 3e5b096: The base photo of a collage now gets full-width `sizes`, so browsers load a large enough image.
+- 00f04fb: `excerpt()` now stays within `max` characters including the ellipsis, and no longer cuts an emoji in half.
+- daf64fd: File sizes just under a unit boundary now read "1 MB" instead of "1024 KB".
+- 4bb7540: The link popover now accepts a bare domain with a port, such as `example.com:8080/path`.
+- c8e8ca5: A paragraph line of only `-` or `=` no longer turns into a horizontal rule or a heading in Markdown output.
+- 77deb6c: A heading that ends in ` #` keeps the `#` in Markdown output.
+- 160804d: `toMarkdown` now writes italic as `*text*`, so italic inside a word, like `foo*bar*baz`, isn't lost.
+- 36ff505: `toMarkdown` no longer breaks a table when a cell holds a `|`, and a line break inside a table cell now becomes `<br>` instead of a stray backslash.
+- ebf9249: Cutting a mention's id or label to 200 characters no longer splits an emoji into an invalid character.
+- 458e3b1: Pasting plain text with several blank lines that hold spaces no longer adds a stray space and line break.
+- 188ac62: Screen readers now announce the missing-title error, like the other form errors.
+
 ## 0.1.1
 
 ### Patch Changes
