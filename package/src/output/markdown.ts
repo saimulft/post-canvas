@@ -32,9 +32,14 @@ function escapeText(text: string): string {
   return text.replace(/([\\`*_[\]<>~|])/g, '\\$1');
 }
 
-/** Escapes text that starts a line, where `#`, `-`, `+`, `>` and `1.` would start a block. */
+/**
+ * Escapes text that starts a line, where `#`, `-`, `+`, `>` and `1.` would start a block, and a line of only `-` or `=`
+ * that would become a rule or turn the line above into a heading.
+ */
 function escapeLineStart(text: string): string {
-  return text.replace(/^(\s*)([#>+-]|\d+[.)])(?=\s|$)/gm, (_, space: string, mark: string) => `${space}\\${mark}`);
+  return text
+    .replace(/^(\s*)([#>+-]|\d+[.)])(?=\s|$)/gm, (_, space: string, mark: string) => `${space}\\${mark}`)
+    .replace(/^([ \t]*)([-=])(?=[-= \t]*$)/gm, '$1\\$2');
 }
 
 /**
