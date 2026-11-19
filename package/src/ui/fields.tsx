@@ -55,7 +55,7 @@ export function TitleField({ value, onChange, editor, t, missing = false, inputR
       {(missing || near) && (
         <div className="pc-title__meta">
           {missing ? (
-            <p id={`${id}-error`} className="pc-field-error">
+            <p id={`${id}-error`} className="pc-field-error" role="alert">
               {t('text.problem.title')}
             </p>
           ) : (
