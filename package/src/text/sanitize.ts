@@ -130,7 +130,9 @@ export function sanitizeTableCell(attrs: Attrs): Attrs {
 
 /** `mention`: an id and label of at most 200 characters, and `@` or `#`. Drops a mention without an id. */
 export function sanitizeMention(attrs: Attrs): Attrs | null {
-  const text = (value: unknown) => (typeof value === 'string' ? value.trim().slice(0, 200) : '');
+  // Cut by code point, so an emoji at the limit isn't split into a lone surrogate.
+  const text = (value: unknown) =>
+    typeof value === 'string' ? Array.from(value.trim()).slice(0, 200).join('').trim() : '';
   const id = text(attrs.id);
   if (!id) return null;
   const label = text(attrs.label) || id;
