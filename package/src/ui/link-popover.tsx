@@ -16,6 +16,8 @@ export function normalizeLinkInput(input: string): string | null {
   const value = input.trim();
   if (!value) return null;
   if (/^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(value)) return safeHref(`mailto:${value}`);
+  // "example.com:8080/path" looks like a scheme to the check below, so treat a domain with a port as a bare domain.
+  if (/^[^\s/:@]+\.[^\s/:@]+:\d{1,5}(?:[/?#]|$)/.test(value)) return safeHref(`https://${value}`);
   if (/^[a-z][a-z0-9+.-]*:/i.test(value) || value.startsWith('/') || value.startsWith('#') || value.startsWith('?')) {
     return safeHref(value);
   }
