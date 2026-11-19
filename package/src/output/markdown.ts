@@ -55,7 +55,7 @@ const markOrder = ['link', 'bold', 'italic', 'strike', 'code'] as const;
 type MdMark = (typeof markOrder)[number];
 
 function open(mark: MdMark): string {
-  return { link: '[', bold: '**', italic: '_', strike: '~~', code: '`' }[mark];
+  return { link: '[', bold: '**', italic: '*', strike: '~~', code: '`' }[mark];
 }
 
 function close(mark: MdMark, attrs: Attrs): string {
