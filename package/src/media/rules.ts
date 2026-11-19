@@ -136,11 +136,12 @@ export function photoSizes(layout: GalleryLayout, count: number, place?: Collage
 /** A file size for people: "820 B", "14 KB", "3.2 MB". Locale-free on purpose, so the server and the editor agree. */
 export function formatBytes(size: number | null): string {
   if (size === null || !Number.isFinite(size) || size < 0) return '';
-  if (size < 1024) return `${Math.round(size)} B`;
+  if (Math.round(size) < 1024) return `${Math.round(size)} B`;
   const units = ['KB', 'MB', 'GB', 'TB'];
   let value = size / 1024;
   let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
+  // Compare after rounding, so 1048575 bytes reads "1 MB" rather than "1024 KB".
+  while (Math.round(value) >= 1024 && unit < units.length - 1) {
     value /= 1024;
     unit++;
   }
