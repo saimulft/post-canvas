@@ -123,7 +123,8 @@ function photoSpec(photo: GalleryPhoto, index: number, layout: string, count: nu
   } else if (count === 1) {
     li.style = `aspect-ratio: ${Math.round(frameRatio(photo) * 10000) / 10000}`;
   }
-  const sizes = photoSizes(layout as GalleryAttrs['layout'], count, index > 0 ? placeOf(photo, index) : null);
+  const place = index > 0 ? clampPlace(placeOf(photo, index), index - 1) : null;
+  const sizes = photoSizes(layout as GalleryAttrs['layout'], count, place);
   return ['li', li, ['img', imgAttrs(photo, { className: 'pc-gallery__img', sizes })]];
 }
 

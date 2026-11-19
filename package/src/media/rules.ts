@@ -128,7 +128,9 @@ export function boxToStyle(box: Box): string {
 /** The `sizes` attribute for a gallery photo, so browsers pick a sensible `srcset` entry. */
 export function photoSizes(layout: GalleryLayout, count: number, place?: CollagePlace | null): string {
   if (count <= 1) return '(min-width: 760px) 720px, 100vw';
-  if (layout === 'collage' && place) return `${Math.ceil(clampPlace(place).w * 720)}px`;
+  // The base photo of a collage (no place) fills the whole frame.
+  if (layout === 'collage')
+    return place ? `${Math.ceil(clampPlace(place).w * 720)}px` : '(min-width: 760px) 720px, 100vw';
   if (layout === 'carousel') return '360px';
   return '(min-width: 760px) 360px, 50vw';
 }
