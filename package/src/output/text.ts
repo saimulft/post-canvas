@@ -117,9 +117,12 @@ export function excerpt(json: JSONContent, max = 160): string {
   const text = firstText(json);
   if (!text) return '';
   if (text.length <= max) return text;
-  const cut = text.slice(0, max + 1);
-  const space = cut.lastIndexOf(' ');
-  return `${(space > 0 ? cut.slice(0, space) : text.slice(0, max)).trimEnd()}…`;
+  // Leave room for the ellipsis, and never end on half of a surrogate pair.
+  const head = text.slice(0, max);
+  const space = head.lastIndexOf(' ');
+  let cut = space > 0 ? head.slice(0, space) : head.slice(0, max - 1);
+  if (/[\ud800-\udbff]$/.test(cut)) cut = cut.slice(0, -1);
+  return `${cut.trimEnd()}…`;
 }
 
 function coverFrom(source: Attrs): CoverImage | null {
