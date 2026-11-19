@@ -135,11 +135,14 @@ function image(source: Attrs): string {
   return src ? `![${escapeText(str(source.alt))}](${escapeUrl(src)})` : '';
 }
 
+// A hard break becomes <br> like a paragraph break. Text runs already escape their pipes, so only those inside inline
+// code still need it here.
 function cellText(cell: JSONContent): string {
   return kids(cell)
     .map((block) => inline(kids(block)))
     .join('<br>')
-    .replace(/\|/g, '\\|')
+    .replace(/\\\n/g, '<br>')
+    .replace(/(\\*)\|/g, (match, slashes: string) => (slashes.length % 2 === 0 ? `${slashes}\\|` : match))
     .replace(/\n/g, ' ');
 }
 
