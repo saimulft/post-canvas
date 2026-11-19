@@ -182,7 +182,8 @@ function block(node: JSONContent, tight: boolean): string {
       return escapeLineStart(inline(kids(node)));
     case 'heading': {
       const level = typeof attrs.level === 'number' ? Math.min(Math.max(attrs.level, 1), 6) : 2;
-      return `${'#'.repeat(level)} ${inline(kids(node))}`;
+      // A trailing ` #` would read as a closing sequence and be dropped.
+      return `${'#'.repeat(level)} ${inline(kids(node)).replace(/(^|\s)(#+\s*)$/, '$1\\$2')}`;
     }
     case 'blockquote':
       return blocks(kids(node), false)
