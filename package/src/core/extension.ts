@@ -14,6 +14,12 @@ export interface PostCanvasCoreOptions {
   features: Features;
   /** Called for every notice. Defaults to the console. The UI replaces it with a live region and toasts. */
   notify: (message: string, kind?: NotifyKind) => void;
+  /**
+   * An absolute http(s) URL that relative picture addresses in loaded HTML resolve against (`/images/a.jpg` becomes
+   * `https://example.com/images/a.jpg`). Default `null`: relative pictures are dropped, since a document only stores
+   * absolute sources.
+   */
+  baseUrl: string | null;
 }
 
 function consoleNotify(message: string, kind: NotifyKind = 'info'): void {
@@ -35,6 +41,7 @@ export const PostCanvasCore = Extension.create<PostCanvasCoreOptions, PostCanvas
       adapters: {},
       features: defaultFeatures,
       notify: consoleNotify,
+      baseUrl: null,
     };
   },
 
@@ -44,6 +51,7 @@ export const PostCanvasCore = Extension.create<PostCanvasCoreOptions, PostCanvas
       adapters: this.options.adapters,
       features: this.options.features,
       notify: this.options.notify,
+      baseUrl: this.options.baseUrl,
     };
   },
 });

@@ -419,5 +419,25 @@ export function sanitizeDocument(json: unknown, options: SanitizeOptions = {}): 
     doc = fit(walk, top, {}, passing, [], 'doc') ?? top.createAndFill() ?? doc;
     doc.check();
   }
-  return { doc: doc.toJSON() as JSONContent, removed: walk.removed, omitted: walk.omitted };
+  const out = doc.toJSON() as JSONContent;
+  dropDuplicateHeadingIds(walk, out);
+  return { doc: out, removed: walk.removed, omitted: walk.omitted };
+}
+
+/** Keeps the first heading with each anchor id: an id names one place in the page, so later copies lose theirs. */
+function dropDuplicateHeadingIds(walk: Walk, doc: JSONContent): void {
+  const seen = new Set<string>();
+  const visit = (node: JSONContent, path: string) => {
+    const id = node.attrs?.id;
+    if (node.type === 'heading' && typeof id === 'string' && node.attrs) {
+      if (seen.has(id)) {
+        node.attrs.id = null;
+        remove(walk, path, 'invalid-attrs', 'heading');
+      } else {
+        seen.add(id);
+      }
+    }
+    node.content?.forEach((child, index) => visit(child, `${path}.content[${index}]`));
+  };
+  visit(doc, 'doc');
 }

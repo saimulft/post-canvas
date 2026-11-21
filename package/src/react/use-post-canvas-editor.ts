@@ -75,6 +75,12 @@ export interface UsePostCanvasEditorOptions {
   notify?: (message: string, kind?: NotifyKind) => void;
   /** Extra Tiptap extensions, added after the kit. Changing them doesn't rebuild the editor. */
   extensions?: AnyExtension[];
+  /**
+   * An absolute http(s) URL that relative picture addresses in HTML content resolve against, for HTML written for one
+   * site (`<img src="/images/a.jpg">`). The document then stores the absolute address. Without it, relative pictures are
+   * dropped. Pasted HTML never uses it: its relative addresses belong to the page it came from.
+   */
+  baseUrl?: string;
 }
 
 /** What `usePostCanvasEditor` returns. */
@@ -144,6 +150,7 @@ export function usePostCanvasEditor(options: UsePostCanvasEditorOptions = {}): P
     readOnly = false,
     autofocus = false,
     placeholder,
+    baseUrl,
   } = options;
   const latest = useRef(options);
   useEffect(() => {
@@ -180,6 +187,7 @@ export function usePostCanvasEditor(options: UsePostCanvasEditorOptions = {}): P
         ...postCanvasKit(resolved, {
           t,
           adapters,
+          baseUrl: baseUrl ?? null,
           notify: (message, kind) => (latest.current.notify ?? consoleNotify)(message, kind),
         }),
         submit,
@@ -244,7 +252,7 @@ export function usePostCanvasEditor(options: UsePostCanvasEditorOptions = {}): P
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    updatePostCanvasCore(editor, { t, adapters, features: current });
+    updatePostCanvasCore(editor, { t, adapters, features: current, baseUrl: baseUrl ?? null });
     const storage = editor.storage.postCanvasText;
     if (storage) {
       storage.limits = limits;
@@ -254,7 +262,7 @@ export function usePostCanvasEditor(options: UsePostCanvasEditorOptions = {}): P
     editor.view.dom.setAttribute('aria-label', t('core.editor.label'));
     // A meta transaction, so the placeholder, problems and status bar pick up the new values.
     editor.view.dispatch(editor.state.tr.setMeta('postCanvasOptions', true).setMeta('addToHistory', false));
-  }, [editor, t, adapters, current, limits, classifier, placeholder]);
+  }, [editor, t, adapters, current, limits, classifier, placeholder, baseUrl]);
 
   return { editor, features: current, t, adapters, limits, classifier };
 }

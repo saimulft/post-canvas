@@ -1,11 +1,22 @@
 // Server-safe HTML output: Tiptap JSON to an HTML string through `@tiptap/static-renderer`, with no DOM. Text and
 // attribute values are escaped by the renderer, and every embed URL is rebuilt from validated ids.
 import type { AnyExtension, JSONContent } from '@tiptap/core';
-import { renderToHTMLString } from '@tiptap/static-renderer/pm/html-string';
+import type { Node as PMNode } from '@tiptap/pm/model';
+import { domOutputSpecToHTMLString, renderToHTMLString } from '@tiptap/static-renderer/pm/html-string';
 import type { Features, Locale } from '../core/types';
 import type { EmbedRenderMode } from '../embeds/render-spec';
+import { splitTableRows, tableShellSpec } from '../text/table-html';
 import { mergedFor, renderExtensions } from './render-extensions';
 import { sanitizeDocument, type DocumentLimits } from './sanitize';
+
+/** A table with its leading header rows in `<thead>`. */
+function tableToHTML({ node, children }: { node: PMNode; children?: unknown }): string {
+  const rows = ([] as unknown[]).concat(children ?? []).map((row) => (typeof row === 'string' ? row : ''));
+  const { head, body } = splitTableRows(node, rows);
+  const shell = domOutputSpecToHTMLString(tableShellSpec(node))();
+  const inner = `${head.length ? `<thead>${head.join('')}</thead>` : ''}<tbody>${body.join('')}</tbody>`;
+  return shell.replace(/<\/table>$/, `${inner}</table>`);
+}
 
 /** Options of `renderToHTML()`. */
 export interface RenderHTMLOptions {
@@ -57,7 +68,13 @@ export function renderToHTML(json: JSONContent, options: RenderHTMLOptions = {})
   const content = sanitize
     ? sanitizeDocument(json, { features, limits, ...(options.extensions?.length ? { extensions } : {}) }).doc
     : json;
-  const html = renderToHTMLString({ content, extensions });
+  // Your own `table` extension keeps its own rendering.
+  const ownTable = options.extensions?.some((extension) => extension.name === 'table');
+  const html = renderToHTMLString({
+    content,
+    extensions,
+    ...(ownTable ? {} : { options: { nodeMapping: { table: tableToHTML } } }),
+  });
   const themeName = theme === 'light' || theme === 'dark' ? theme : 'auto';
   return wrapper
     ? `<div class="pc-view" data-pc-theme="${themeName}"><div class="pc-content">${html}</div></div>`

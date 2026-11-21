@@ -151,6 +151,25 @@ export function safeMediaSrc(url: unknown, options: { allowBlob?: boolean } = {}
 }
 
 /**
+ * Resolves a relative picture address (`/images/a.jpg`, `a.jpg` or `//cdn.example.com/a.jpg`) against `baseUrl`, an
+ * absolute http or https URL, and checks the result like `safeMediaSrc`. Documents only store absolute sources, so
+ * imported HTML that used relative ones keeps its pictures and still shows them anywhere it's rendered. `null` when the
+ * base isn't http(s), the address has a scheme of its own (absolute or dangerous), or the result isn't http(s).
+ */
+export function resolveMediaSrc(url: unknown, baseUrl: unknown): string | null {
+  if (typeof url === 'string' && url.length > maxUrlLength) return null;
+  const base = safeHttpUrl(baseUrl);
+  const found = inspect(url);
+  if (!base || !found) return null;
+  for (const scheme of found.schemes) if (scheme !== null) return null;
+  try {
+    return safeMediaSrc(new URL(found.clean, base).href);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The placeholder source of a pasted picture that was staged for upload while the paste was on its way in. The
  * `.invalid` top-level domain never resolves, so it can't load anything. It's editor-only state: `sanitizeDocument()`
  * and `validateDocument()` treat it as transient, and `hasPendingUploads()` reports it.

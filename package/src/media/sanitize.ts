@@ -10,7 +10,7 @@ import type {
   ImageAttrs,
   MediaSource,
 } from '../core/types';
-import { safeHttpUrl, safeMediaSrc } from '../core/url';
+import { resolveMediaSrc, safeHttpUrl, safeMediaSrc } from '../core/url';
 import { clampNumber, clampPlace, defaultMaxPhotos, maxDimension, maxPhotosCeiling, textLimits } from './rules';
 
 /** What a gallery may hold, from the features. */
@@ -81,9 +81,9 @@ export function cleanDimension(value: unknown): number {
 
 /**
  * A `srcset` with every entry checked on its own: an absolute http(s) URL and a `640w` or `2x` descriptor. Bad entries
- * are dropped; `null` when none is left.
+ * are dropped; `null` when none is left. With `baseUrl`, relative entries are resolved against it first.
  */
-export function cleanSrcset(value: unknown): string | null {
+export function cleanSrcset(value: unknown, baseUrl?: string | null): string | null {
   if (typeof value !== 'string' || value.length > 8000) return null;
   const entries: string[] = [];
   // The HTML srcset grammar, simplified: a URL (no spaces), then an optional descriptor up to the next comma. A URL that
@@ -105,7 +105,7 @@ export function cleanSrcset(value: unknown): string | null {
       at++;
     }
     if (descriptor && !/^(?:\d{1,5}w|\d{1,2}(?:\.\d{1,2})?x)$/.test(descriptor)) continue;
-    const safe = safeHttpUrl(url);
+    const safe = safeHttpUrl(url) ?? (baseUrl ? resolveMediaSrc(url, baseUrl) : null);
     if (!safe || /[\s,]/.test(safe)) continue;
     entries.push(descriptor ? `${safe} ${descriptor}` : safe);
   }

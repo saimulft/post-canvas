@@ -34,6 +34,7 @@ import { safeHref } from '../core/url';
 import type { Features } from '../core/types';
 import {
   codeLanguage,
+  headingId,
   linkRel,
   paletteColor,
   sanitizeCodeBlock,
@@ -44,16 +45,43 @@ import {
   sanitizeOrderedList,
   sanitizeParagraph,
   sanitizeTableCell,
+  sanitizeTableHeader,
   sanitizeTaskItem,
   sanitizeTextStyle,
+  tableScope,
 } from './sanitize';
 import '../core/extension-fields';
 
 /** `paragraph`, with its sanitizer. */
 export const PcParagraph = Paragraph.extend({ postCanvasSanitize: sanitizeParagraph });
 
-/** `heading`, levels 1 to 4. */
-export const PcHeading = Heading.extend({ postCanvasSanitize: sanitizeHeading });
+/**
+ * `heading`, levels 1 to 4, with an optional `id` for anchor links (`#pricing`). The id is kept from imported HTML and
+ * isn't copied when a heading is split; `sanitizeDocument()` keeps only the first of duplicate ids.
+ */
+export const PcHeading = Heading.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      id: {
+        default: null,
+        keepOnSplit: false,
+        parseHTML: (element: HTMLElement) => headingId(element.getAttribute('id')),
+        renderHTML: (attrs: { id?: unknown }) => {
+          const id = headingId(attrs.id);
+          return id ? { id } : {};
+        },
+      },
+    };
+  },
+  postCanvasSanitize: sanitizeHeading,
+});
+
+/**
+ * `code`, which can sit inside a link, bold or other marks (`[\`npm i\`](…)`): Tiptap's own code mark excludes every
+ * other mark, so links around code were lost on import.
+ */
+export const PcCode = Code.extend({ excludes: '' });
 
 /** Wraps an attribute's parseHTML so the parsed value goes through a sanitizer. */
 function cleanedOnParse(
@@ -104,12 +132,22 @@ export const PcTableCell = TableCell.extend({
   postCanvasSanitize: sanitizeTableCell,
 });
 
-/** `tableHeader`, with sanitized spans and widths. */
+/** `tableHeader`, with sanitized spans and widths, and the `scope` it had (`col`, `row`, `colgroup` or `rowgroup`). */
 export const PcTableHeader = TableHeader.extend({
   addAttributes() {
-    return cleanedOnParse(this.parent?.(), clampSpan, ['colspan', 'rowspan']);
+    return {
+      ...cleanedOnParse(this.parent?.(), clampSpan, ['colspan', 'rowspan']),
+      scope: {
+        default: null,
+        parseHTML: (element: HTMLElement) => tableScope(element.getAttribute('scope')),
+        renderHTML: (attrs: { scope?: unknown }) => {
+          const scope = tableScope(attrs.scope);
+          return scope ? { scope } : {};
+        },
+      },
+    };
   },
-  postCanvasSanitize: sanitizeTableCell,
+  postCanvasSanitize: sanitizeTableHeader,
 });
 
 /** `codeBlock`: the language comes from `class="language-…"` and must match the language pattern. */
@@ -341,7 +379,7 @@ export function textExtensions(features: Features, parts?: Partial<TextExtension
   if (features.italic) list.push(Italic);
   if (features.underline) list.push(Underline);
   if (features.strike) list.push(Strike);
-  if (features.code) list.push(Code);
+  if (features.code) list.push(PcCode);
   if (features.subscript) list.push(Subscript);
   if (features.superscript) list.push(Superscript);
   if (features.link) list.push(parts?.link ?? PcLink);

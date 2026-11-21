@@ -1,14 +1,34 @@
 // The read-only React view of a document. No hooks and no "use client", so it renders in React Server Components; the
 // interactive parts (the video facades, the carousel) are client components inside the node views.
 import type { AnyExtension, JSONContent } from '@tiptap/core';
+import type { Node as PMNode } from '@tiptap/pm/model';
 import { renderToReactElement } from '@tiptap/static-renderer/pm/react';
-import type { ReactNode } from 'react';
+import { createElement, type ReactNode } from 'react';
 import type { Features, Locale, ViewMap } from '../core/types';
 import type { EmbedRenderMode } from '../embeds/render-spec';
 import { embedViews } from '../embeds/view/index';
 import { mediaViews } from '../media/view/index';
+import { specToReact } from '../media/view/spec-to-react';
+import { splitTableRows, tableShellSpec } from '../text/table-html';
 import { mergedFor, renderExtensions } from './render-extensions';
 import { sanitizeDocument, type DocumentLimits } from './sanitize';
+
+/** A table with its leading header rows in `<thead>`, like `renderToHTML()`. */
+function TableView({ node, children }: { node: PMNode; children?: ReactNode }): ReactNode {
+  const rows = ([] as ReactNode[]).concat(children ?? []);
+  const { head, body } = splitTableRows(node, rows);
+  return specToReact(tableShellSpec(node), (tag, props, kids) =>
+    tag === 'table'
+      ? createElement(
+          'table',
+          props,
+          ...kids,
+          head.length > 0 ? createElement('thead', { key: 'head' }, ...head) : null,
+          createElement('tbody', { key: 'body' }, ...body),
+        )
+      : undefined,
+  );
+}
 
 /** Props of `PostCanvasView`. */
 export interface PostCanvasViewProps {
@@ -90,7 +110,13 @@ export function PostCanvasView({
         : [],
     ),
   );
-  const body = renderToReactElement({ content: doc, extensions, options: { nodeMapping } });
+  // Your own `table` view or extension keeps its own rendering.
+  const ownTable = Boolean(views?.table) || Boolean(extra?.some((extension) => extension.name === 'table'));
+  const body = renderToReactElement({
+    content: doc,
+    extensions,
+    options: { nodeMapping: ownTable ? nodeMapping : { table: TableView, ...nodeMapping } },
+  });
   return (
     <div className={className ? `pc-view ${className}` : 'pc-view'} data-pc-theme={theme}>
       <div className="pc-content">{body}</div>

@@ -3,6 +3,8 @@
 import type { JSONContent } from '@tiptap/core';
 import { DOMParser as SchemaParser } from '@tiptap/pm/model';
 import type { Features } from '../core/types';
+import { resolveMediaSrc, safeMediaSrc } from '../core/url';
+import { cleanSrcset } from '../media/sanitize';
 import { maxRemovals, sanitizeDocument, sanitizerSetup, type DocumentLimits, type SanitizeRemoval } from './sanitize';
 
 /**
@@ -34,6 +36,12 @@ export interface FromHTMLOptions {
    * elements, throws a `RangeError` before anything is parsed, so a hostile import can't stall or crash the server.
    */
   maxLength?: number;
+  /**
+   * An absolute http(s) URL that relative picture addresses resolve against, for HTML written for one site: with
+   * `https://example.com`, `<img src="/images/a.jpg">` is kept as `https://example.com/images/a.jpg`. Without it,
+   * relative pictures are dropped (and listed in `onRemoved`), because a document only stores absolute sources.
+   */
+  baseUrl?: string;
 }
 
 /** Elements whose end tag may be left out, and elements that never have one: neither counts toward nesting. */
@@ -56,6 +64,23 @@ function nestingOf(html: string, limit: number): number {
     if (depth > deepest && (deepest = depth) > limit) break;
   }
   return deepest;
+}
+
+/** Gives relative picture sources and `srcset` entries absolute addresses, against `baseUrl`. */
+function resolveRelativePictures(document: Document, baseUrl: string): void {
+  for (const img of Array.from(document.querySelectorAll('img'))) {
+    const src = img.getAttribute('src') ?? '';
+    if (src && !safeMediaSrc(src)) {
+      const resolved = resolveMediaSrc(src, baseUrl);
+      if (resolved) img.setAttribute('src', resolved);
+    }
+    const srcset = img.getAttribute('srcset');
+    if (srcset) {
+      const cleaned = cleanSrcset(srcset, baseUrl);
+      if (cleaned) img.setAttribute('srcset', cleaned);
+      else img.removeAttribute('srcset');
+    }
+  }
 }
 
 /** Elements removed before parsing: they never carry content, and some would run or load something. */
@@ -115,6 +140,7 @@ export function fromHTML(html: string, options: FromHTMLOptions = {}): JSONConte
     heading.append(...Array.from(deep.childNodes));
     deep.replaceWith(heading);
   }
+  if (options.baseUrl) resolveRelativePictures(document, options.baseUrl);
   const parser = SchemaParser.fromSchema(schema);
   // A picture or frame the schema refuses leaves no node behind: parse each on its own to find and list those.
   Array.from(document.querySelectorAll(checkedTags))

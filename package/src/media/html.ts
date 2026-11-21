@@ -10,7 +10,7 @@ import type {
   ImageAttrs,
   MediaSource,
 } from '../core/types';
-import { safeHttpUrl, safeMediaSrc, stagedSrcPrefix } from '../core/url';
+import { resolveMediaSrc, safeHttpUrl, safeMediaSrc, stagedSrcPrefix } from '../core/url';
 import {
   boxToStyle,
   clampPlace,
@@ -52,6 +52,8 @@ export interface SourceOptions {
   previewOf?: (uploadKey: string) => string | null;
   /** True for a `blob:` URL this editor made itself, which stays usable for as long as the page is open. */
   ownsBlob?: (url: string) => boolean;
+  /** An absolute http(s) URL that relative sources (`/images/a.jpg`) resolve against. Without it they're dropped. */
+  baseUrl?: string | null;
 }
 
 export { stagedSrcPrefix };
@@ -213,6 +215,8 @@ export function sourceFromImg(img: Element, options: SourceOptions = {}): MediaS
       src = `${stagedSrcPrefix}${fromData.uploadKey}`;
       uploadKey = fromData.uploadKey;
     }
+  } else if (!src && options.baseUrl) {
+    src = resolveMediaSrc(raw, options.baseUrl);
   }
   if (!src) return null;
   return {
@@ -220,7 +224,7 @@ export function sourceFromImg(img: Element, options: SourceOptions = {}): MediaS
     width: cleanDimension(img.getAttribute('width')),
     height: cleanDimension(img.getAttribute('height')),
     alt: cleanLine(img.getAttribute('alt'), textLimits.alt),
-    srcset: cleanSrcset(img.getAttribute('srcset')),
+    srcset: cleanSrcset(img.getAttribute('srcset'), options.baseUrl),
     placeholder: placeholderOf(img),
     uploadId: cleanUploadId(img.getAttribute('data-upload-id')),
     uploadKey,

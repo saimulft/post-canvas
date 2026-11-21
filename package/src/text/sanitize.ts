@@ -91,9 +91,30 @@ export function sanitizeParagraph(attrs: Attrs): Attrs {
   return fix(attrs, { textAlign });
 }
 
-/** `heading`: a level from 1 to 4 (others are clamped, so the text survives) and the alignment. */
+// No whitespace (an id is one token), no quotes or angle brackets, no controls; 1 to 100 characters. Imported ids keep
+// their own spelling ("-why-it-matters", "q&a:-pricing"), so anchor links into old posts still land.
+// eslint-disable-next-line no-control-regex
+const headingIdPattern = /^[^\s"'`<>\u0000-\u001f\u007f\u2028\u2029]{1,100}$/u;
+
+/** A heading's anchor id, or `null`: one token of at most 100 characters, without quotes, angle brackets or controls. */
+export function headingId(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const id = value.trim();
+  return headingIdPattern.test(id) ? id : null;
+}
+
+/** `heading`: a level from 1 to 4 (others are clamped, so the text survives), the alignment and the anchor id. */
 export function sanitizeHeading(attrs: Attrs): Attrs {
-  return fix({ level: 2, ...attrs }, { level: (value) => integer(value, 1, 4, 2), textAlign });
+  return fix({ level: 2, ...attrs }, { level: (value) => integer(value, 1, 4, 2), textAlign, id: headingId });
+}
+
+const tableScopes = new Set(['col', 'row', 'colgroup', 'rowgroup']);
+
+/** A header cell's `scope`: `col`, `row`, `colgroup` or `rowgroup`, or `null`. */
+export function tableScope(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const scope = value.trim().toLowerCase();
+  return tableScopes.has(scope) ? scope : null;
 }
 
 /** `orderedList`: a whole-number `start` and a known list `type`. */
@@ -126,6 +147,11 @@ export function sanitizeTableCell(attrs: Attrs): Attrs {
       ? widths.map((w: number) => Math.round(w))
       : null;
   return { colspan, rowspan, colwidth };
+}
+
+/** `tableHeader`: like `tableCell`, plus a known `scope`. */
+export function sanitizeTableHeader(attrs: Attrs): Attrs {
+  return { ...sanitizeTableCell(attrs), scope: tableScope(attrs.scope) };
 }
 
 /** `mention`: an id and label of at most 200 characters, and `@` or `#`. Drops a mention without an id. */

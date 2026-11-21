@@ -106,6 +106,10 @@ function editorSourceOptions(editor: Editor | undefined): SourceOptions {
   return {
     previewOf: (key) => editor?.storage.postCanvasMedia?.manager?.get(key)?.preview ?? null,
     ownsBlob: (url) => editor?.storage.postCanvasMedia?.manager?.owns(url) ?? false,
+    // Read when a rule runs: the parse rules are built before the storage exists, and the base can change.
+    get baseUrl() {
+      return editor?.storage.postCanvasCore?.baseUrl ?? null;
+    },
     fromDataUrl: (dataUrl, name) => {
       const manager = editor?.storage.postCanvasMedia?.manager;
       const upload = editor?.storage.postCanvasCore.adapters.upload;

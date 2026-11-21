@@ -479,6 +479,8 @@ export interface PostCanvasCoreStorage {
   features: Features;
   /** Announces a message in the editor's live region (and as a toast, once the UI wires it). */
   notify(message: string, kind?: NotifyKind): void;
+  /** Where relative picture addresses in loaded HTML resolve, or `null` to drop them. */
+  baseUrl: string | null;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
