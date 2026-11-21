@@ -5,7 +5,15 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import FileHandler from '@tiptap/extension-file-handler';
 import { ReactNodeViewRenderer } from '@tiptap/react';
 import { Images, Image as ImageIcon, Paperclip } from 'lucide-react';
-import type { Features, GalleryAttrs, GalleryLayout, GalleryPhoto, InsertItem, Problem } from '../core/types';
+import type {
+  CaptionContent,
+  Features,
+  GalleryAttrs,
+  GalleryLayout,
+  GalleryPhoto,
+  InsertItem,
+  Problem,
+} from '../core/types';
 import { createKey } from '../core/ids';
 import { safeMediaSrc } from '../core/url';
 import { galleryAttrsOf } from './coerce';
@@ -15,8 +23,9 @@ import { ImageNodeView } from './editor/image-node-view';
 import { mediaStopEvent } from '../core/react/node-view';
 import { stagedSrcPrefix, type SourceOptions } from './html';
 import { dataUrlToFile, htmlHasText } from './paste';
-import { createGalleryNode, FileNode, fileParseRules, galleryParseRules, ImageNode, imageParseRules } from './schema';
-import { galleryLimitsFrom, normalizePlaces } from './sanitize';
+import { captionFields, captionMarksFor } from './caption';
+import { createGalleryNode, createImageNode, FileNode, fileParseRules, galleryParseRules, imageParseRules } from './schema';
+import { galleryLimitsFrom, normalizePlaces, sanitizeImageLink } from './sanitize';
 import type { MediaStorage } from './storage';
 import { UploadManager } from './upload/manager';
 import { prepareImage } from './upload/prepare';
@@ -36,6 +45,10 @@ export interface InsertImageOptions {
   alt?: string;
   /** Plain text under the picture. Default empty. */
   caption?: string;
+  /** The caption with formatting (links, bold, italic and the rest). Replaces `caption` when it has text. */
+  captionContent?: CaptionContent | null;
+  /** Where the picture links to. Unsafe addresses are refused. */
+  link?: { href: string; target?: '_blank' | null } | null;
   /** Where the picture sits. Default `center`. */
   align?: 'center' | 'wide' | 'full' | 'left' | 'right';
   /** A `srcset` such as `"url 640w, url 1280w"`. Invalid entries are dropped. */
@@ -86,6 +99,11 @@ function galleryAt(editor: Editor, nodeId?: string) {
   const { selection } = editor.state;
   const node = editor.state.doc.nodeAt(selection.from);
   return node?.type.name === 'gallery' ? { node, pos: selection.from } : null;
+}
+
+/** True for an event inside an image's caption editor. */
+function inCaptionEditor(event: Event): boolean {
+  return event.target instanceof Element && event.target.closest('.pc-caption-editor') !== null;
 }
 
 /** A picture source the editor accepts in a command: http(s) only, so commands never bring in `javascript:`. */
@@ -269,7 +287,8 @@ export const MediaUploads = Extension.create<Record<string, never>, MediaStorage
               width: options.width ?? 0,
               height: options.height ?? 0,
               alt: options.alt ?? '',
-              caption: options.caption ?? '',
+              ...captionFields(options.caption ?? '', options.captionContent ?? null),
+              link: sanitizeImageLink(options.link ?? null),
               align: options.align ?? 'center',
               srcset: options.srcset ?? null,
               placeholder: options.placeholder ?? null,
@@ -426,16 +445,19 @@ function plainPastePlugin(): Plugin {
 export function mediaKit(features: Features): AnyExtension[] {
   const extensions: AnyExtension[] = [];
   if (features.image) {
+    const captionMarks = captionMarksFor(features);
     extensions.push(
-      ImageNode.extend({
+      createImageNode(captionMarks).extend({
         parseHTML() {
-          return imageParseRules(editorSourceOptions(this.editor));
+          // Assigned, not spread: spreading would read the lazy `baseUrl` now.
+          return imageParseRules(Object.assign(editorSourceOptions(this.editor), { captionMarks }));
         },
         addNodeView() {
           return ReactNodeViewRenderer(ImageNodeView, {
             className: 'pc-node pc-node--image',
             attrs: ({ node }) => ({ 'data-pc-align': String(node.attrs.align) }),
-            stopEvent: ({ event }) => mediaStopEvent(event),
+            // Everything in the caption editor, drags and drops included, belongs to the caption's own editor.
+            stopEvent: ({ event }) => inCaptionEditor(event) || mediaStopEvent(event),
           });
         },
         postCanvasInsert() {

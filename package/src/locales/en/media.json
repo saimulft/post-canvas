@@ -25,6 +25,7 @@
   "media.alt.hint": "Describe the picture for people who can't see it. Leave it empty if it's only decoration.",
   "media.caption.label": "Caption",
   "media.caption.placeholder": "Add a caption…",
+  "media.caption.tools": "Caption formatting",
   "media.upload.progress": "Uploading… {percent}%",
   "media.upload.progressLabel": "Upload progress",
   "media.upload.failedShort": "Upload failed",

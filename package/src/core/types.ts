@@ -85,12 +85,47 @@ export interface GalleryPhoto extends MediaSource {
   place: CollagePlace | null;
 }
 
+/** Where a picture links to: the page a reader opens by clicking it. */
+export interface ImageLink {
+  /** A URL that passed `safeHref`: http, https, mailto, tel or a relative path. */
+  href: string;
+  /** `_blank` to open a new tab, or `null`. */
+  target: '_blank' | null;
+  /** Known `rel` tokens only; always `noopener` with `_blank`. */
+  rel: string | null;
+}
+
+/** The marks a formatted caption can use. */
+export type CaptionMark = 'bold' | 'italic' | 'underline' | 'strike' | 'code' | 'link';
+
+/** Every caption mark, outermost first: the order they nest in the output. */
+export const captionMarks: readonly CaptionMark[] = ['link', 'bold', 'italic', 'underline', 'strike', 'code'];
+
+/** One piece of a formatted caption: a run of text with its marks, or a line break. */
+export interface CaptionNode {
+  type: 'text' | 'hardBreak';
+  /** The text of a `text` piece. */
+  text?: string;
+  /** The text's marks. A `link` mark carries `href`, `target` and `rel` like the `link` mark in text. */
+  marks?: Array<{ type: CaptionMark; attrs?: Record<string, unknown> }>;
+}
+
+/** A formatted caption: inline Tiptap JSON with text, marks and line breaks only. */
+export type CaptionContent = CaptionNode[];
+
 /** Attributes of the `image` block node. */
 export interface ImageAttrs extends MediaSource {
   /** Unique within the document. Filled in by the editor; `null` after sanitizing a node that had none. */
   id: string;
-  /** Plain text shown under the picture. Empty for none. */
+  /** The caption as plain text, shown under the picture. Empty for none. Always set, also for a formatted caption. */
   caption: string;
+  /**
+   * The caption with its formatting (links, bold, italic and the rest), or `null` for a plain caption. When set, it's
+   * what the output shows, and `caption` is its plain text.
+   */
+  captionContent: CaptionContent | null;
+  /** Where the picture links to, or `null`. */
+  link: ImageLink | null;
   /** Where the picture sits: in the column, wider than it, the full width, or floated left or right. */
   align: ImageAlign;
 }

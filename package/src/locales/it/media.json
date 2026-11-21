@@ -25,6 +25,7 @@
   "media.alt.hint": "Descrivi l'immagine per chi non può vederla. Lascia vuoto se è solo decorativa.",
   "media.caption.label": "Didascalia",
   "media.caption.placeholder": "Aggiungi una didascalia…",
+  "media.caption.tools": "Formattazione della didascalia",
   "media.upload.progress": "Caricamento… {percent}%",
   "media.upload.progressLabel": "Avanzamento del caricamento",
   "media.upload.failedShort": "Caricamento non riuscito",

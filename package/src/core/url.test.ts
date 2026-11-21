@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { safeHref, safeHttpUrl, safeMediaSrc } from './url';
+import { resolveMediaSrc, safeHref, safeHttpUrl, safeMediaSrc } from './url';
 
 const char = (code: number) => String.fromCharCode(code);
 const TAB = char(9);
@@ -108,5 +108,23 @@ describe('safeMediaSrc', () => {
     expect(safeMediaSrc(blob)).toBeNull();
     expect(safeMediaSrc(blob, { allowBlob: true })).toBe(blob);
     expect(safeMediaSrc('blob:javascript:alert(1)', { allowBlob: true })).toBeNull();
+  });
+});
+
+describe('resolveMediaSrc', () => {
+  it('resolves relative addresses against an http(s) base', () => {
+    expect(resolveMediaSrc('/images/a.jpg', 'https://example.com/blog/post')).toBe('https://example.com/images/a.jpg');
+    expect(resolveMediaSrc('a.jpg', 'https://example.com/blog/')).toBe('https://example.com/blog/a.jpg');
+    expect(resolveMediaSrc('//cdn.example.com/a.jpg', 'https://example.com')).toBe('https://cdn.example.com/a.jpg');
+  });
+
+  it('refuses addresses with a scheme of their own, and bases that are not http(s)', () => {
+    for (const url of ['javascript:alert(1)', 'JaVaScRiPt:x', 'java\tscript:x', '&#106;avascript:x', 'data:image/png;base64,AA']) {
+      expect(resolveMediaSrc(url, 'https://example.com')).toBeNull();
+    }
+    expect(resolveMediaSrc('https://cdn.example.com/a.jpg', 'https://example.com')).toBeNull();
+    expect(resolveMediaSrc('/a.jpg', 'javascript:alert(1)//')).toBeNull();
+    expect(resolveMediaSrc('/a.jpg', '/relative-base')).toBeNull();
+    expect(resolveMediaSrc('/a.jpg', null)).toBeNull();
   });
 });

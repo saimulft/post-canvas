@@ -4,6 +4,7 @@ import {
   AlignCenter,
   AlignHorizontalJustifyCenter,
   ImageUp,
+  Link2,
   PanelLeft,
   PanelRight,
   RectangleHorizontal,
@@ -17,13 +18,17 @@ import { MediaToolbar } from '../../core/react/media-toolbar';
 import { Popover } from '../../core/react/popover';
 import { ToolButton } from '../../core/react/tool-button';
 import { useTranslator } from '../../core/react/use-translator';
-import type { ImageAlign } from '../../core/types';
+import { captionMarks as allCaptionMarks, type CaptionContent, type CaptionMark, type ImageAlign } from '../../core/types';
+import { captionText, isFormattedCaption, sanitizeCaptionContent } from '../caption';
 import { imageAttrsOf } from '../coerce';
-import { imgAttrs } from '../html';
+import { imageCaptionChildren, imgAttrs } from '../html';
 import { textLimits } from '../rules';
+import { sanitizeImageLink } from '../sanitize';
 import { imageAccept, openFilePicker } from '../upload/picker';
 import { uploadFiles } from '../upload/pipeline';
-import { CaptionField } from './caption-field';
+import { specToReact } from '../view/spec-to-react';
+import { CaptionEditor } from './caption-editor';
+import { LinkFields } from './link-fields';
 import { RadioMenu } from './radio-menu';
 import { runFrameKey, useEditable } from '../../core/react/node-view';
 import { useUpload } from './node-view-utils';
@@ -39,14 +44,31 @@ const alignIcons: Record<ImageAlign, LucideIcon> = {
 const alignOrder: ImageAlign[] = ['center', 'wide', 'full', 'left', 'right'];
 
 /** The `image` block in the editor: the picture, its caption, and tools to replace, describe, align and remove it. */
-export function ImageNodeView({ editor, node, getPos, selected, updateAttributes, deleteNode }: ReactNodeViewProps) {
+export function ImageNodeView({
+  editor,
+  extension,
+  node,
+  getPos,
+  selected,
+  updateAttributes,
+  deleteNode,
+}: ReactNodeViewProps) {
   const t = useTranslator();
   const attrs = imageAttrsOf(node.attrs);
   const entry = useUpload(editor, attrs.uploadKey);
   const editable = useEditable(editor);
-  const [panel, setPanel] = useState<'alt' | 'align' | null>(null);
+  const [panel, setPanel] = useState<'alt' | 'align' | 'link' | null>(null);
   const [altAnchor, setAltAnchor] = useState<HTMLElement | null>(null);
   const [alignAnchor, setAlignAnchor] = useState<HTMLElement | null>(null);
+  const [linkAnchor, setLinkAnchor] = useState<HTMLElement | null>(null);
+  const captionMarks: readonly CaptionMark[] =
+    (extension.options as { captionMarks?: readonly CaptionMark[] }).captionMarks ?? allCaptionMarks;
+  const caption = sanitizeCaptionContent(attrs.captionContent ?? attrs.caption, captionMarks);
+  const setCaption = (content: CaptionContent) =>
+    updateAttributes({
+      caption: captionText(content),
+      captionContent: isFormattedCaption(content) ? content : null,
+    });
   const manager = editor.storage.postCanvasMedia?.manager ?? null;
   const view = uploadView(attrs.uploadKey, entry);
   const label = attrs.alt ? t('media.image.labelWithAlt', { alt: attrs.alt }) : t('media.image.label');
@@ -91,6 +113,14 @@ export function ImageNodeView({ editor, node, getPos, selected, updateAttributes
           onClick={() => setPanel(panel === 'align' ? null : 'align')}
         />
       </span>
+      <span ref={setLinkAnchor} className="pc-media-anchor">
+        <ToolButton
+          icon={Link2}
+          label={attrs.link ? t('ui.link.edit') : t('ui.link.button')}
+          pressed={panel === 'link' || Boolean(attrs.link)}
+          onClick={() => setPanel(panel === 'link' ? null : 'link')}
+        />
+      </span>
       <ToolButton icon={Trash2} label={t('media.image.remove')} onClick={deleteNode} />
     </MediaToolbar>
   ) : undefined;
@@ -127,16 +157,23 @@ export function ImageNodeView({ editor, node, getPos, selected, updateAttributes
             />
           </span>
           {editable ? (
-            <CaptionField
-              value={attrs.caption}
-              onChange={(caption) => updateAttributes({ caption })}
+            <CaptionEditor
+              value={caption}
+              onChange={setCaption}
               onLeave={() => runFrameKey(editor, getPos, 'after')}
+              marks={captionMarks}
               label={t('media.caption.label')}
               placeholder={t('media.caption.placeholder')}
+              t={t}
               className="pc-image__caption"
             />
           ) : (
-            attrs.caption && <figcaption className="pc-image__caption">{attrs.caption}</figcaption>
+            caption.length > 0 &&
+            specToReact([
+              'figcaption',
+              { class: 'pc-image__caption' },
+              ...imageCaptionChildren({ caption: attrs.caption, captionContent: attrs.captionContent }),
+            ])
           )}
         </figure>
       </MediaFrame>
@@ -154,6 +191,30 @@ export function ImageNodeView({ editor, node, getPos, selected, updateAttributes
           onDone={() => setPanel(null)}
           t={t}
         />
+      </Popover>
+      <Popover
+        open={panel === 'link'}
+        anchor={linkAnchor}
+        onClose={() => setPanel(null)}
+        label={t('ui.link.dialog')}
+        placement="bottom-end"
+        className="pc-media-panel pc-link-popover"
+      >
+        {panel === 'link' && (
+          <LinkFields
+            href={attrs.link?.href ?? ''}
+            newTab={attrs.link?.target === '_blank'}
+            t={t}
+            onApply={(href, target) => {
+              updateAttributes({ link: sanitizeImageLink({ href, target }) });
+              setPanel(null);
+            }}
+            onRemove={() => {
+              updateAttributes({ link: null });
+              setPanel(null);
+            }}
+          />
+        )}
       </Popover>
       <Popover
         open={panel === 'align'}

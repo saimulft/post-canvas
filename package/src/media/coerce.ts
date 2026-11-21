@@ -2,12 +2,14 @@
 // keeps `blob:` previews and upload keys, because the editor draws those too; the drawing code still checks every URL
 // and number, so a value that slips through can't become markup.
 import type {
+  CaptionContent,
   CollagePlace,
   FileAttrs,
   GalleryAttrs,
   GalleryPhoto,
   ImageAlign,
   ImageAttrs,
+  ImageLink,
   MediaSource,
 } from '../core/types';
 
@@ -33,12 +35,25 @@ function sourceOf(raw: Record<string, unknown>): MediaSource {
 const recordOf = (value: unknown): Record<string, unknown> =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 
+/** A picture's link in its contract shape, or `null`. The drawing code still checks the href. */
+function linkOf(value: unknown): ImageLink | null {
+  const link = recordOf(value);
+  if (typeof link.href !== 'string' || !link.href) return null;
+  return {
+    href: link.href,
+    target: link.target === '_blank' ? '_blank' : null,
+    rel: typeof link.rel === 'string' && link.rel ? link.rel : null,
+  };
+}
+
 /** `image` attributes in their contract shape. */
 export function imageAttrsOf(raw: Record<string, unknown>): ImageAttrs {
   return {
     id: text(raw.id),
     ...sourceOf(raw),
     caption: text(raw.caption),
+    captionContent: Array.isArray(raw.captionContent) ? (raw.captionContent as CaptionContent) : null,
+    link: linkOf(raw.link),
     align: aligns.includes(raw.align as ImageAlign) ? (raw.align as ImageAlign) : 'center',
   };
 }

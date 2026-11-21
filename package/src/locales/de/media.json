@@ -25,6 +25,7 @@
   "media.alt.hint": "Beschreib das Bild für Menschen, die es nicht sehen. Lass das Feld leer, wenn es nur Schmuck ist.",
   "media.caption.label": "Bildunterschrift",
   "media.caption.placeholder": "Bildunterschrift hinzufügen …",
+  "media.caption.tools": "Formatierung der Bildunterschrift",
   "media.upload.progress": "Lädt hoch … {percent} %",
   "media.upload.progressLabel": "Upload-Fortschritt",
   "media.upload.failedShort": "Hochladen fehlgeschlagen",

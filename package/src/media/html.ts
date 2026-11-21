@@ -2,15 +2,19 @@
 // is touched only through the element a parse rule hands over. The React views in `view/` draw the same markup.
 import type { DOMOutputSpec } from '@tiptap/pm/model';
 import type {
+  CaptionMark,
   FileAttrs,
   GalleryAttrs,
   GalleryLayout,
   GalleryPhoto,
   ImageAlign,
   ImageAttrs,
+  ImageLink,
   MediaSource,
 } from '../core/types';
-import { resolveMediaSrc, safeHttpUrl, safeMediaSrc, stagedSrcPrefix } from '../core/url';
+import { resolveMediaSrc, safeHref, safeHttpUrl, safeMediaSrc, stagedSrcPrefix } from '../core/url';
+import { linkRel } from '../text/sanitize';
+import { captionChildrenSpec, captionFromElement, captionText, isFormattedCaption, type SpecChild } from './caption';
 import {
   boxToStyle,
   clampPlace,
@@ -36,6 +40,7 @@ import {
   cleanUploadId,
   defaultGalleryLimits,
   normalizePlaces,
+  sanitizeImageLink,
   type GalleryLimits,
 } from './sanitize';
 
@@ -54,6 +59,8 @@ export interface SourceOptions {
   ownsBlob?: (url: string) => boolean;
   /** An absolute http(s) URL that relative sources (`/images/a.jpg`) resolve against. Without it they're dropped. */
   baseUrl?: string | null;
+  /** The marks a parsed caption keeps. Default: every caption mark. */
+  captionMarks?: readonly CaptionMark[];
 }
 
 export { stagedSrcPrefix };
@@ -94,7 +101,25 @@ const withRoot = (root: Attrs, html: Record<string, unknown>): Attrs => {
   return merged;
 };
 
-/** The `image` node as `figure > img + figcaption`. */
+/** The `a` around a linked picture, or `null` when it has no safe link. */
+export function imageLinkAttrs(link: ImageLink | null): Attrs | null {
+  const href = safeHref(link?.href);
+  if (!link || !href) return null;
+  const target = link.target === '_blank' ? '_blank' : null;
+  const attrs: Attrs = { class: 'pc-image__link', href };
+  const rel = linkRel(link.rel, target);
+  if (target) attrs.target = target;
+  if (rel) attrs.rel = rel;
+  return attrs;
+}
+
+/** The children of an image's `figcaption`: the formatted caption when it has one, else the plain text. */
+export function imageCaptionChildren(attrs: Pick<ImageAttrs, 'caption' | 'captionContent'>): SpecChild[] {
+  if (attrs.captionContent && attrs.captionContent.length > 0) return captionChildrenSpec(attrs.captionContent);
+  return attrs.caption ? [attrs.caption] : [];
+}
+
+/** The `image` node as `figure > img + figcaption`, with the picture inside an `a` when it links somewhere. */
 export function imageSpec(attrs: ImageAttrs, html: Record<string, unknown> = {}): DOMOutputSpec {
   const root: Attrs = { class: `pc-image pc-image--${attrs.align}`, 'data-pc-image': '', 'data-align': attrs.align };
   if (attrs.id) root['data-id'] = attrs.id;
@@ -102,9 +127,12 @@ export function imageSpec(attrs: ImageAttrs, html: Record<string, unknown> = {})
     'img',
     imgAttrs(attrs, { className: 'pc-image__img', sizes: '(min-width: 760px) 720px, 100vw' }),
   ];
-  return attrs.caption
-    ? ['figure', withRoot(root, html), img, ['figcaption', { class: 'pc-image__caption' }, attrs.caption]]
-    : ['figure', withRoot(root, html), img];
+  const link = imageLinkAttrs(attrs.link);
+  const picture: DOMOutputSpec = link ? ['a', link, img] : img;
+  const caption = imageCaptionChildren(attrs);
+  return caption.length > 0
+    ? (['figure', withRoot(root, html), picture, ['figcaption', { class: 'pc-image__caption' }, ...caption]] as DOMOutputSpec)
+    : ['figure', withRoot(root, html), picture];
 }
 
 /** One gallery photo as an `li`. */
@@ -234,6 +262,21 @@ export function sourceFromImg(img: Element, options: SourceOptions = {}): MediaS
 const alignOf = (value: string | null): ImageAlign =>
   value === 'wide' || value === 'full' || value === 'left' || value === 'right' ? value : 'center';
 
+/**
+ * The link around a picture: the nearest `a[href]` that holds nothing but pictures (an `a` around text as well is a
+ * text link, and keeps its own mark), and inside `within` when given. `null` when there's none or its href is unsafe.
+ */
+export function imageLinkFrom(img: Element, within?: Element): ImageLink | null {
+  const anchor = img.closest('a[href]');
+  if (!anchor || (within && !within.contains(anchor))) return null;
+  if ((anchor.textContent ?? '').trim() !== '') return null;
+  return sanitizeImageLink({
+    href: anchor.getAttribute('href'),
+    target: anchor.getAttribute('target'),
+    rel: anchor.getAttribute('rel'),
+  });
+}
+
 /** An `image` node from our own `figure[data-pc-image]` or any `figure` holding one `img`. */
 export function imageFromFigure(figure: HTMLElement, options: SourceOptions): Partial<ImageAttrs> | false {
   const images = figure.querySelectorAll('img');
@@ -242,18 +285,23 @@ export function imageFromFigure(figure: HTMLElement, options: SourceOptions): Pa
   const source = sourceFromImg(images[0], options);
   if (!source) return false;
   const caption = figure.querySelector(':scope > figcaption');
+  const content = caption ? captionFromElement(caption, options.captionMarks) : [];
   return {
     ...source,
     id: cleanId(figure.getAttribute('data-id')) ?? undefined,
-    caption: cleanText(caption?.textContent ?? '', textLimits.caption),
+    caption: captionText(content),
+    captionContent: isFormattedCaption(content) ? content : null,
+    link: imageLinkFrom(images[0], figure),
     align: alignOf(figure.getAttribute('data-align')),
   };
 }
 
-/** An `image` node from a bare `img`. */
+/** An `image` node from a bare `img`, with the link around it. */
 export function imageFromImg(img: HTMLElement, options: SourceOptions): Partial<ImageAttrs> | false {
   const source = sourceFromImg(img, options);
-  return source ? { ...source, caption: '', align: 'center' } : false;
+  return source
+    ? { ...source, caption: '', captionContent: null, link: imageLinkFrom(img), align: 'center' }
+    : false;
 }
 
 /**

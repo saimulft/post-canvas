@@ -428,7 +428,7 @@ export function sanitizeDocument(json: unknown, options: SanitizeOptions = {}): 
 function dropDuplicateHeadingIds(walk: Walk, doc: JSONContent): void {
   const seen = new Set<string>();
   const visit = (node: JSONContent, path: string) => {
-    const id = node.attrs?.id;
+    const id: unknown = node.attrs?.id;
     if (node.type === 'heading' && typeof id === 'string' && node.attrs) {
       if (seen.has(id)) {
         node.attrs.id = null;

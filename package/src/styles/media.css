@@ -99,6 +99,22 @@
   background: var(--pc-surface) center / cover no-repeat;
 }
 
+/* A linked picture: the link is the picture's box, with the focus ring on the picture's corners. */
+.pc-image__link {
+  display: block;
+  border-radius: var(--pc-radius);
+}
+
+.pc-image--full .pc-image__link {
+  border-radius: 0;
+}
+
+.pc-image__caption a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
 /* Center keeps the picture's own size, up to a comfortable width, in the middle of the column. */
 .pc-image--center,
 .pc-node[data-pc-align='center'] .pc-frame--image {
@@ -501,6 +517,63 @@
   .pc-frame:hover .pc-caption-field:placeholder-shown {
     opacity: 1;
   }
+}
+
+/* The image caption's own small editor: the same look as the caption it edits, with a formatting bar while focused. */
+.pc-caption-editor {
+  position: relative;
+}
+
+.pc-root .pc-caption-editor .ProseMirror {
+  min-height: 1.45em;
+  padding: 2px var(--pc-space-1);
+  border-radius: var(--pc-radius-sm);
+  outline: none;
+  overflow-wrap: anywhere;
+}
+
+.pc-root .pc-caption-editor .ProseMirror:focus {
+  color: var(--pc-text);
+}
+
+.pc-root .pc-caption-editor .ProseMirror p {
+  margin: 0;
+}
+
+/* The document placeholder floats left; a caption's sits centred like its text. */
+.pc-root .pc-caption-editor .ProseMirror p.is-editor-empty:first-child::before {
+  float: none;
+  height: auto;
+  opacity: 0.7;
+}
+
+.pc-frame:not(:focus-within):not([data-selected]) .pc-caption-editor p.is-editor-empty:first-child::before {
+  opacity: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pc-frame:hover .pc-caption-editor p.is-editor-empty:first-child::before {
+    opacity: 0.7;
+  }
+}
+
+.pc-caption-tools {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--pc-space-1));
+  z-index: 2;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--pc-border);
+  border-radius: var(--pc-radius-full);
+  background: var(--pc-surface-raised);
+  box-shadow: var(--pc-shadow);
+}
+
+.pc-caption-tools__button {
+  width: 32px;
+  height: 32px;
 }
 
 .pc-media-anchor {
@@ -1335,5 +1408,14 @@
 
   .pc-frame:not(:focus-within):not([data-selected]) .pc-caption-field:placeholder-shown {
     opacity: 1;
+  }
+
+  .pc-frame:not(:focus-within):not([data-selected]) .pc-caption-editor p.is-editor-empty:first-child::before {
+    opacity: 0.7;
+  }
+
+  .pc-caption-tools__button {
+    width: 44px;
+    height: 44px;
   }
 }

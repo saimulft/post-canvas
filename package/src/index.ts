@@ -4,7 +4,7 @@
 export * from './core/types';
 export { defaultFeatures, resolveFeatures, builtInEmbedProviderNames } from './core/features';
 export { createTranslator } from './core/i18n';
-export { safeHref, safeHttpUrl, safeMediaSrc } from './core/url';
+export { safeHref, safeHttpUrl, safeMediaSrc, resolveMediaSrc } from './core/url';
 export { createId, createKey } from './core/ids';
 export { collectInsertItems, collectProblems } from './core/registry';
 export {

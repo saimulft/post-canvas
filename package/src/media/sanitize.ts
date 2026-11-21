@@ -1,16 +1,20 @@
 // Cleans media attributes from untrusted JSON. Pure: it runs on the server, in `sanitizeDocument`, and never trusts a
 // value it didn't build itself. Every function returns only the keys of the contract, so unknown attributes disappear.
-import { galleryLayouts } from '../core/types';
+import { captionMarks as allCaptionMarks, galleryLayouts } from '../core/types';
 import type {
+  CaptionMark,
   FileAttrs,
   GalleryAttrs,
   GalleryLayout,
   GalleryPhoto,
   ImageAlign,
   ImageAttrs,
+  ImageLink,
   MediaSource,
 } from '../core/types';
-import { resolveMediaSrc, safeHttpUrl, safeMediaSrc } from '../core/url';
+import { linkRel } from '../text/sanitize';
+import { captionFields } from './caption';
+import { resolveMediaSrc, safeHref, safeHttpUrl, safeMediaSrc } from '../core/url';
 import { clampNumber, clampPlace, defaultMaxPhotos, maxDimension, maxPhotosCeiling, textLimits } from './rules';
 
 /** What a gallery may hold, from the features. */
@@ -149,12 +153,33 @@ export function sanitizeMediaSource(attrs: unknown): MediaSource | null {
   };
 }
 
-/** The `image` node's attributes, cleaned. `null` drops the node. */
-export function sanitizeImageAttrs(attrs: Record<string, unknown>): ImageAttrs | null {
+/** A picture's link: an href that passes `safeHref`, `_blank` or no target, and a known `rel`. `null` for none. */
+export function sanitizeImageLink(value: unknown): ImageLink | null {
+  const raw = record(value);
+  const href = safeHref(raw.href);
+  if (!href) return null;
+  const target = raw.target === '_blank' ? '_blank' : null;
+  return { href, target, rel: linkRel(raw.rel, target) };
+}
+
+/**
+ * The `image` node's attributes, cleaned. `null` drops the node. The caption keeps the marks in `captionMarks`
+ * (default: all of them); its plain `caption` is rebuilt from `captionContent` when that's set.
+ */
+export function sanitizeImageAttrs(
+  attrs: Record<string, unknown>,
+  captionMarks: readonly CaptionMark[] = allCaptionMarks,
+): ImageAttrs | null {
   const source = sanitizeMediaSource(attrs);
   if (!source) return null;
   const align = imageAligns.includes(attrs.align as ImageAlign) ? (attrs.align as ImageAlign) : 'center';
-  return { id: cleanId(attrs.id) as string, ...source, caption: cleanText(attrs.caption, textLimits.caption), align };
+  return {
+    id: cleanId(attrs.id) as string,
+    ...source,
+    ...captionFields(cleanText(attrs.caption, textLimits.caption), attrs.captionContent, captionMarks),
+    link: sanitizeImageLink(attrs.link),
+    align,
+  };
 }
 
 /**

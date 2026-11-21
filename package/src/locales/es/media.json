@@ -25,6 +25,7 @@
   "media.alt.hint": "Describe la imagen para quien no puede verla. Déjalo vacío si solo es decorativa.",
   "media.caption.label": "Pie de foto",
   "media.caption.placeholder": "Añade un pie de foto…",
+  "media.caption.tools": "Formato del pie de foto",
   "media.upload.progress": "Subiendo… {percent}%",
   "media.upload.progressLabel": "Progreso de la subida",
   "media.upload.failedShort": "Falló la subida",

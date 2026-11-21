@@ -25,6 +25,7 @@
   "media.alt.hint": "Décrivez l'image pour les personnes qui ne la voient pas. Laissez vide si elle est purement décorative.",
   "media.caption.label": "Légende",
   "media.caption.placeholder": "Ajouter une légende…",
+  "media.caption.tools": "Mise en forme de la légende",
   "media.upload.progress": "Envoi… {percent} %",
   "media.upload.progressLabel": "Progression de l'envoi",
   "media.upload.failedShort": "Échec de l'envoi",

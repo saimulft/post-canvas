@@ -12,12 +12,21 @@ export {
   ImageNode,
   GalleryNode,
   FileNode,
+  createImageNode,
   createGalleryNode,
   mediaSchema,
   type GalleryNodeOptions,
+  type ImageNodeOptions,
 } from './media/schema';
 export { mediaKit, MediaUploads } from './media/kit';
-export { sanitizeImageAttrs, sanitizeGalleryAttrs, sanitizeFileAttrs, type GalleryLimits } from './media/sanitize';
+export {
+  sanitizeImageAttrs,
+  sanitizeImageLink,
+  sanitizeGalleryAttrs,
+  sanitizeFileAttrs,
+  type GalleryLimits,
+} from './media/sanitize';
+export { sanitizeCaptionContent, captionText } from './media/caption';
 // --- end chat A ---
 
 // --- chat B: text and UI ---
@@ -25,6 +34,7 @@ export { textSchema, textExtensions, mentionText } from './text/schema';
 export {
   PcParagraph,
   PcHeading,
+  PcCode,
   PcOrderedList,
   PcTaskItem,
   PcTableCell,

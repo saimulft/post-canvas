@@ -25,6 +25,7 @@
   "media.alt.hint": "Descreva a imagem para quem não pode vê-la. Deixe vazio se for só decorativa.",
   "media.caption.label": "Legenda",
   "media.caption.placeholder": "Adicione uma legenda…",
+  "media.caption.tools": "Formatação da legenda",
   "media.upload.progress": "Enviando… {percent}%",
   "media.upload.progressLabel": "Progresso do envio",
   "media.upload.failedShort": "O envio falhou",

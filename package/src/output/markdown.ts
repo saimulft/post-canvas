@@ -216,7 +216,11 @@ function block(node: JSONContent, tight: boolean): string {
       return table(node);
     case 'image': {
       const picture = image(attrs);
-      return [picture, str(attrs.caption) && `_${escapeText(str(attrs.caption))}_`].filter(Boolean).join('\n');
+      const link = attrs.link && typeof attrs.link === 'object' ? safeHref((attrs.link as Attrs).href) : null;
+      const linked = picture && link ? `[${picture}](${escapeUrl(link)})` : picture;
+      const content = Array.isArray(attrs.captionContent) ? (attrs.captionContent as JSONContent[]) : [];
+      const caption = content.length > 0 ? inline(content) : escapeText(str(attrs.caption));
+      return [linked, caption && `_${caption}_`].filter(Boolean).join('\n');
     }
     case 'gallery': {
       const photos = Array.isArray(attrs.photos) ? (attrs.photos as unknown[]) : [];
