@@ -18,7 +18,12 @@ import { MediaToolbar } from '../../core/react/media-toolbar';
 import { Popover } from '../../core/react/popover';
 import { ToolButton } from '../../core/react/tool-button';
 import { useTranslator } from '../../core/react/use-translator';
-import { captionMarks as allCaptionMarks, type CaptionContent, type CaptionMark, type ImageAlign } from '../../core/types';
+import {
+  captionMarks as allCaptionMarks,
+  type CaptionContent,
+  type CaptionMark,
+  type ImageAlign,
+} from '../../core/types';
 import { captionText, isFormattedCaption, sanitizeCaptionContent } from '../caption';
 import { imageAttrsOf } from '../coerce';
 import { imageCaptionChildren, imgAttrs } from '../html';

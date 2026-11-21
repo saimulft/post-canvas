@@ -119,7 +119,13 @@ describe('resolveMediaSrc', () => {
   });
 
   it('refuses addresses with a scheme of their own, and bases that are not http(s)', () => {
-    for (const url of ['javascript:alert(1)', 'JaVaScRiPt:x', 'java\tscript:x', '&#106;avascript:x', 'data:image/png;base64,AA']) {
+    for (const url of [
+      'javascript:alert(1)',
+      'JaVaScRiPt:x',
+      'java\tscript:x',
+      '&#106;avascript:x',
+      'data:image/png;base64,AA',
+    ]) {
       expect(resolveMediaSrc(url, 'https://example.com')).toBeNull();
     }
     expect(resolveMediaSrc('https://cdn.example.com/a.jpg', 'https://example.com')).toBeNull();

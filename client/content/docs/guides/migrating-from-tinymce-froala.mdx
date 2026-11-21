@@ -32,37 +32,37 @@ To open an old post for editing, convert it first and pass the JSON as `defaultC
 
 ## What is kept and what is dropped
 
-| Kept                                                                        | Notes                                                                                                                                            |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Paragraphs, headings 1 to 4                                                 | `h5` and `h6` become heading 4, keeping their text                                                                                               |
-| Text alignment                                                              | From `style="text-align: ..."`: left, center, right, justify                                                                                     |
-| Bold, italic, underline, strikethrough, inline code, subscript, superscript | From the tags, and bold and italic also from `font-weight` and `font-style` styles                                                               |
-| Links                                                                       | `http`, `https`, `mailto`, `tel` and relative addresses. `target="_blank"` is kept and `rel` is set to a safe value                              |
-| Bulleted, numbered and nested lists                                         | A numbered list keeps its start number                                                                                                           |
-| Tables                                                                      | Header cells, `colspan` and `rowspan`                                                                                                            |
-| Quotes, dividers, line breaks                                               |                                                                                                                                                  |
-| Code blocks                                                                 | A `language-...` class on `pre` or `code` sets the language                                                                                      |
-| Images                                                                      | With an `http` or `https` address. Width and height attributes are kept. A `figure` with a `figcaption` becomes an image with a caption          |
-| YouTube and Vimeo iframes                                                   | Become video blocks. A start time is kept                                                                                                        |
-| Other player iframes                                                        | Spotify, SoundCloud, X, Instagram, TikTok, CodePen, Loom, Figma and Google Maps become embed blocks, if the `embed` feature allows that provider |
-| CKEditor `oembed` elements                                                  | Treated like an iframe with the same address                                                                                                     |
-| Task lists                                                                  | Only from Tiptap's own markup (`data-type="taskList"`)                                                                                           |
+| Kept                                                                        | Notes                                                                                                                                                                                                                |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Paragraphs, headings 1 to 4                                                 | `h5` and `h6` become heading 4, keeping their text. A heading keeps its `id`, so anchor links into the post still land                                                                                               |
+| Text alignment                                                              | From `style="text-align: ..."`: left, center, right, justify                                                                                                                                                         |
+| Bold, italic, underline, strikethrough, inline code, subscript, superscript | From the tags, and bold and italic also from `font-weight` and `font-style` styles. Inline code keeps a link or bold around it                                                                                       |
+| Links                                                                       | `http`, `https`, `mailto`, `tel` and relative addresses. `target="_blank"` and named targets such as `target="new"` open a new tab, and `rel` is set to a safe value                                                 |
+| Bulleted, numbered and nested lists                                         | A numbered list keeps its start number                                                                                                                                                                               |
+| Tables                                                                      | Header cells with their `scope`, `colspan` and `rowspan`. `renderToHTML()` puts leading header rows in `thead`                                                                                                       |
+| Quotes, dividers, line breaks                                               |                                                                                                                                                                                                                      |
+| Code blocks                                                                 | A `language-...` class on `pre` or `code` sets the language                                                                                                                                                          |
+| Images                                                                      | With an `http` or `https` address, or a relative one with `baseUrl`. Width and height are kept, and so is a link around the picture. A `figcaption` becomes the caption with its links, bold, italic and line breaks |
+| YouTube and Vimeo iframes                                                   | Become video blocks. A start time is kept                                                                                                                                                                            |
+| Other player iframes                                                        | Spotify, SoundCloud, X, Instagram, TikTok, CodePen, Loom, Figma and Google Maps become embed blocks, if the `embed` feature allows that provider                                                                     |
+| CKEditor `oembed` elements                                                  | Treated like an iframe with the same address                                                                                                                                                                         |
+| Task lists                                                                  | Only from Tiptap's own markup (`data-type="taskList"`)                                                                                                                                                               |
 
 | Dropped                                                                               | What happens                                                                               |
 | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `script`, `style`, `template`, `noscript`, `object`, `embed`, `link`, `meta` elements | Removed with their content                                                                 |
-| Classes, ids and inline styles                                                        | Removed. The few styles above are read before that                                         |
+| Classes, inline styles, and ids other than a heading's                                | Removed. The few styles above are read before that                                         |
 | Text color, background color, font family, font size, line height, indentation        | Removed. Colors in Post Canvas are nine named palette colors, so there is no exact mapping |
 | `mark` and highlighted text                                                           | Becomes a highlight in the default color, whatever its original color                      |
 | Unknown tags and wrappers such as `div`, `section`, `font`, custom elements           | Unwrapped: the text and any known children stay                                            |
-| Images with a relative address or a `data:` address                                   | Dropped, leaving an empty paragraph                                                        |
+| Images with a `data:` address, or a relative one without `baseUrl`                    | Dropped, leaving an empty paragraph                                                        |
 | Iframes from other sites, `video` and `audio` elements, forms                         | Dropped                                                                                    |
 | Table widths, borders, cell colors, `colgroup`                                        | Dropped                                                                                    |
 | Checkbox lists written as plain `input` elements                                      | Become plain bulleted lists                                                                |
 | Mentions from another editor's markup                                                 | Become plain text                                                                          |
 | Anchors with a `name` but no `href`                                                   | Unwrapped to text                                                                          |
 
-Two of these catch most migrations out: relative image paths (TinyMCE writes them by default) and base64 images. Resolve relative paths to full addresses before you convert, and upload base64 images to your storage first. The script below does the first.
+Two of these catch most migrations out: relative image paths (TinyMCE writes them by default) and base64 images. Pass `baseUrl` (the site the posts were written for) and relative paths become full addresses; upload base64 images to your storage first. The script below does the first.
 
 ## A batch script
 
@@ -79,16 +79,6 @@ const features = resolveFeatures('article'); // the features your editor will us
 
 const window = new Window();
 
-/** Makes relative image addresses absolute, because fromHTML drops anything that is not http or https. */
-function absolutizeImages(html: string): string {
-  const parsed = new window.DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
-  for (const img of Array.from(parsed.querySelectorAll('img'))) {
-    const src = img.getAttribute('src') ?? '';
-    if (src && !/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(src)) img.setAttribute('src', new URL(src, SITE).href);
-  }
-  return parsed.body.innerHTML;
-}
-
 function words(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
 }
@@ -97,8 +87,7 @@ const posts = JSON.parse(await readFile('legacy-posts.json', 'utf8')) as { id: s
 const migrated: { id: string; doc: JSONContent }[] = [];
 const report: { id: string; warnings: string[] }[] = [];
 
-for (const { id, html } of posts) {
-  const source = absolutizeImages(html);
+for (const { id, html: source } of posts) {
   const warnings: string[] = [];
 
   // 1. Everything fromHTML left out: stripped scripts and styles, pictures and frames it refused, and what the
@@ -108,6 +97,7 @@ for (const { id, html } of posts) {
     doc = fromHTML(source, {
       window,
       features,
+      baseUrl: SITE, // relative image paths become full addresses
       onRemoved: (removed, omitted) => {
         const kinds = removed.map((item) => item.type ?? item.reason).join(', ');
         if (removed.length > 0 || omitted > 0) warnings.push(`left out ${removed.length + omitted}: ${kinds}`);
@@ -141,7 +131,7 @@ Run it with a TypeScript runner such as `npx tsx scripts/migrate-posts.ts`. The 
 
 ### About `removed`
 
-`onRemoved(removed, omitted)` receives what `fromHTML()` left out while it read the HTML: elements it stripped before parsing (`script`, `style`, `template`, `noscript`, `object` and `embed`), pictures and frames the schema refused (a relative or `data:` image, a player from a site it does not know), and whatever `sanitizeDocument()` removed afterwards, such as a node type your features turn off. Each item has a `path`, a `reason` and a `type`. At most 100 items are listed, and `omitted` counts the rest.
+`onRemoved(removed, omitted)` receives what `fromHTML()` left out while it read the HTML: elements it stripped before parsing (`script`, `style`, `template`, `noscript`, `object` and `embed`), pictures and frames the schema refused (a `data:` image, a relative one without `baseUrl`, a player from a site it does not know), and whatever `sanitizeDocument()` removed afterwards, such as a node type your features turn off. Each item has a `path`, a `reason` and a `type`. At most 100 items are listed, and `omitted` counts the rest.
 
 Formatting the schema has no place for is dropped without a record: colours, fonts, sizes and table styling. That is why the script also compares word counts with the source. Running `sanitizeDocument()` again with the features of your real editor, as the script does, shows what your preset would remove, for example a table in a `comment` preset.
 

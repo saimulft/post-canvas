@@ -35,6 +35,7 @@ import type { Features } from '../core/types';
 import {
   codeLanguage,
   headingId,
+  htmlLinkTarget,
   linkRel,
   paletteColor,
   sanitizeCodeBlock,
@@ -183,12 +184,12 @@ export const linkSpec = {
       href: { default: null, parseHTML: (element: HTMLElement) => safeHref(element.getAttribute('href')) },
       target: {
         default: null,
-        parseHTML: (element: HTMLElement) => (element.getAttribute('target') === '_blank' ? '_blank' : null),
+        parseHTML: (element: HTMLElement) => htmlLinkTarget(element.getAttribute('target')),
       },
       rel: {
         default: null,
         parseHTML: (element: HTMLElement) =>
-          linkRel(element.getAttribute('rel'), element.getAttribute('target') === '_blank' ? '_blank' : null),
+          linkRel(element.getAttribute('rel'), htmlLinkTarget(element.getAttribute('target'))),
       },
     };
   },

@@ -225,9 +225,20 @@ export function importHtml(html: string, window: HTMLParserHost) {
 }
 ```
 
+### Relative pictures
+
+A document stores absolute picture addresses only, so it shows the same wherever it's rendered. HTML written for one site often uses relative ones (`<img src="/images/a.jpg">`). Pass `baseUrl`, the site the HTML was written for, and they're kept as full addresses; without it they're dropped and listed in `onRemoved`. `srcset` entries are resolved the same way. An address with a scheme of its own, such as `javascript:` or `data:`, is never treated as relative.
+
+```ts
+const doc = fromHTML('<img src="/images/a.jpg" alt="Shop">', { window, baseUrl: 'https://example.com' });
+// the image's src is https://example.com/images/a.jpg
+```
+
+The editor takes the same option for HTML `defaultContent` and `setContent()`: `<PostCanvas baseUrl="https://example.com" />`. Pasted HTML never uses it, because its relative addresses belong to the page it was copied from.
+
 ### What was left out
 
-`onRemoved(removed, omitted)` receives everything the import left out, so you can log it or show a warning. `removed` lists elements removed before parsing (`script`, `style`, `template`, `noscript`, `object` and `embed`), pictures and frames the schema refused (a relative or `data:` image, a player from an unknown site), and whatever `sanitizeDocument()` removed afterwards. At most 100 items are listed, and `omitted` counts the rest. Formatting the schema has no place for, such as fonts, sizes and colours outside the palette, is dropped without a record.
+`onRemoved(removed, omitted)` receives everything the import left out, so you can log it or show a warning. `removed` lists elements removed before parsing (`script`, `style`, `template`, `noscript`, `object` and `embed`), pictures and frames the schema refused (a `data:` image, a relative one without `baseUrl`, a player from an unknown site), and whatever `sanitizeDocument()` removed afterwards. At most 100 items are listed, and `omitted` counts the rest. Formatting the schema has no place for, such as fonts, sizes and colours outside the palette, is dropped without a record.
 
 ```ts
 const doc = fromHTML(html, {

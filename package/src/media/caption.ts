@@ -4,7 +4,7 @@
 import type { DOMOutputSpec } from '@tiptap/pm/model';
 import { safeHref } from '../core/url';
 import { captionMarks, type CaptionContent, type CaptionMark, type CaptionNode, type Features } from '../core/types';
-import { linkRel } from '../text/sanitize';
+import { htmlLinkTarget, linkRel } from '../text/sanitize';
 import { textLimits } from './rules';
 
 type Attrs = Record<string, unknown>;
@@ -68,10 +68,7 @@ const sameMarks = (a: readonly Mark[] = [], b: readonly Mark[] = []) =>
  * 1,000 characters and 20 line breaks, neighbouring pieces with the same marks joined, and no line breaks at the ends.
  * An empty list when nothing is left. A plain string becomes one text piece.
  */
-export function sanitizeCaptionContent(
-  value: unknown,
-  allowed: readonly CaptionMark[] = captionMarks,
-): CaptionContent {
+export function sanitizeCaptionContent(value: unknown, allowed: readonly CaptionMark[] = captionMarks): CaptionContent {
   const input: unknown[] = typeof value === 'string' ? fromPlainText(value) : Array.isArray(value) ? value : [];
   const out: CaptionNode[] = [];
   let length = 0;
@@ -256,7 +253,7 @@ export function captionFromElement(element: Element, allowed: readonly CaptionMa
     else if (tag === 'A') {
       const attrs = linkAttrs({
         href: el.getAttribute('href'),
-        target: el.getAttribute('target'),
+        target: htmlLinkTarget(el.getAttribute('target')),
         rel: el.getAttribute('rel'),
       });
       if (attrs) next = [...marks, { type: 'link', attrs }];

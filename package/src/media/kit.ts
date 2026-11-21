@@ -24,7 +24,14 @@ import { mediaStopEvent } from '../core/react/node-view';
 import { stagedSrcPrefix, type SourceOptions } from './html';
 import { dataUrlToFile, htmlHasText } from './paste';
 import { captionFields, captionMarksFor } from './caption';
-import { createGalleryNode, createImageNode, FileNode, fileParseRules, galleryParseRules, imageParseRules } from './schema';
+import {
+  createGalleryNode,
+  createImageNode,
+  FileNode,
+  fileParseRules,
+  galleryParseRules,
+  imageParseRules,
+} from './schema';
 import { galleryLimitsFrom, normalizePlaces, sanitizeImageLink } from './sanitize';
 import type { MediaStorage } from './storage';
 import { UploadManager } from './upload/manager';

@@ -32,15 +32,20 @@ describe('pictures', () => {
   });
 
   it('leaves a link that wraps text as well as a picture on the text', () => {
-    const doc = fromHTML('<p><a href="https://example.com"><img src="https://cdn.example.com/a.png"> Read more</a></p>', {
-      window,
-    });
+    const doc = fromHTML(
+      '<p><a href="https://example.com"><img src="https://cdn.example.com/a.png"> Read more</a></p>',
+      {
+        window,
+      },
+    );
     expect(doc.content?.find((node) => node.type === 'image')?.attrs?.link).toBeNull();
     expect(renderToHTML(doc, { wrapper: false })).toContain('<a href="https://example.com">');
   });
 
   it('drops an unsafe picture link and keeps the picture', () => {
-    const html = roundTrip('<figure><a href="javascript:alert(1)"><img src="https://cdn.example.com/a.png"></a></figure>');
+    const html = roundTrip(
+      '<figure><a href="javascript:alert(1)"><img src="https://cdn.example.com/a.png"></a></figure>',
+    );
     expect(html).toContain('src="https://cdn.example.com/a.png"');
     expect(html).not.toContain('javascript:');
     const doc = sanitizeDocument({
@@ -126,7 +131,12 @@ describe('pictures', () => {
   });
 
   it('never resolves a dangerous address as if it were relative', () => {
-    for (const src of ['javascript:alert(1)', 'java&#x09;script:alert(1)', 'data:image/svg+xml,<svg>', 'file:///etc/x']) {
+    for (const src of [
+      'javascript:alert(1)',
+      'java&#x09;script:alert(1)',
+      'data:image/svg+xml,<svg>',
+      'file:///etc/x',
+    ]) {
       const doc = fromHTML(`<img src="${src}">`, { window, baseUrl: 'https://example.com' });
       expect(doc.content?.some((node) => node.type === 'image')).toBe(false);
     }
@@ -140,6 +150,15 @@ describe('pictures', () => {
 });
 
 describe('text', () => {
+  it('reads a named link target as a new tab, and _self or _top as none', () => {
+    const html = roundTrip(
+      '<p><a href="https://a.example.com" target="new">A</a> <a href="https://b.example.com" target="_self">B</a> <a href="https://c.example.com" target="_top">C</a></p>',
+    );
+    expect(html).toContain('<a href="https://a.example.com" target="_blank" rel="noopener noreferrer nofollow">A</a>');
+    expect(html).toContain('<a href="https://b.example.com">B</a>');
+    expect(html).toContain('<a href="https://c.example.com">C</a>');
+  });
+
   it('keeps a link around inline code, and bold around it', () => {
     const html = roundTrip(
       '<p>Run <a href="https://www.postgresql.org/docs/18/app-pgchecksums.html"><code>pg_checksums --enable</code></a> or <strong><code>on</code></strong>.</p>',

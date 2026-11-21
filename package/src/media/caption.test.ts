@@ -17,7 +17,12 @@ describe('sanitizeCaptionContent', () => {
       {
         type: 'text',
         text: 'us',
-        marks: [{ type: 'link', attrs: { href: 'https://example.com', target: '_blank', rel: 'noopener noreferrer nofollow' } }],
+        marks: [
+          {
+            type: 'link',
+            attrs: { href: 'https://example.com', target: '_blank', rel: 'noopener noreferrer nofollow' },
+          },
+        ],
       },
     ]);
   });
@@ -54,9 +59,10 @@ describe('sanitizeCaptionContent', () => {
 
 describe('captionFields', () => {
   it('prefers the formatted caption and rebuilds the plain text from it', () => {
-    expect(
-      captionFields('stale text', [{ type: 'text', text: 'Fresh', marks: [{ type: 'bold' }] }]),
-    ).toEqual({ caption: 'Fresh', captionContent: [{ type: 'text', text: 'Fresh', marks: [{ type: 'bold' }] }] });
+    expect(captionFields('stale text', [{ type: 'text', text: 'Fresh', marks: [{ type: 'bold' }] }])).toEqual({
+      caption: 'Fresh',
+      captionContent: [{ type: 'text', text: 'Fresh', marks: [{ type: 'bold' }] }],
+    });
     expect(captionFields('Plain', null)).toEqual({ caption: 'Plain', captionContent: null });
   });
 });

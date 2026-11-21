@@ -67,6 +67,17 @@ function fix(attrs: Attrs, fixes: Record<string, (value: unknown) => unknown>): 
   return out;
 }
 
+/**
+ * The target of a link read from HTML: `_blank`, also for a named window such as `target="new"` (it opens one too), or
+ * `null` for none, `_self`, `_parent` and `_top`.
+ */
+export function htmlLinkTarget(value: unknown): '_blank' | null {
+  if (typeof value !== 'string') return null;
+  const target = value.trim().toLowerCase();
+  if (target === '_blank') return '_blank';
+  return /^[a-z0-9][\w-]{0,49}$/.test(target) ? '_blank' : null;
+}
+
 /** `link`: drops the mark when the href is unsafe; forces `noopener` on `_blank`. */
 export function sanitizeLink(attrs: Attrs): Attrs | null {
   const href = safeHref(attrs.href);

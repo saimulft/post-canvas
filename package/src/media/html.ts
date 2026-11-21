@@ -13,7 +13,7 @@ import type {
   MediaSource,
 } from '../core/types';
 import { resolveMediaSrc, safeHref, safeHttpUrl, safeMediaSrc, stagedSrcPrefix } from '../core/url';
-import { linkRel } from '../text/sanitize';
+import { htmlLinkTarget, linkRel } from '../text/sanitize';
 import { captionChildrenSpec, captionFromElement, captionText, isFormattedCaption, type SpecChild } from './caption';
 import {
   boxToStyle,
@@ -131,7 +131,12 @@ export function imageSpec(attrs: ImageAttrs, html: Record<string, unknown> = {})
   const picture: DOMOutputSpec = link ? ['a', link, img] : img;
   const caption = imageCaptionChildren(attrs);
   return caption.length > 0
-    ? (['figure', withRoot(root, html), picture, ['figcaption', { class: 'pc-image__caption' }, ...caption]] as DOMOutputSpec)
+    ? ([
+        'figure',
+        withRoot(root, html),
+        picture,
+        ['figcaption', { class: 'pc-image__caption' }, ...caption],
+      ] as DOMOutputSpec)
     : ['figure', withRoot(root, html), picture];
 }
 
@@ -272,7 +277,7 @@ export function imageLinkFrom(img: Element, within?: Element): ImageLink | null 
   if ((anchor.textContent ?? '').trim() !== '') return null;
   return sanitizeImageLink({
     href: anchor.getAttribute('href'),
-    target: anchor.getAttribute('target'),
+    target: htmlLinkTarget(anchor.getAttribute('target')),
     rel: anchor.getAttribute('rel'),
   });
 }
@@ -299,9 +304,7 @@ export function imageFromFigure(figure: HTMLElement, options: SourceOptions): Pa
 /** An `image` node from a bare `img`, with the link around it. */
 export function imageFromImg(img: HTMLElement, options: SourceOptions): Partial<ImageAttrs> | false {
   const source = sourceFromImg(img, options);
-  return source
-    ? { ...source, caption: '', captionContent: null, link: imageLinkFrom(img), align: 'center' }
-    : false;
+  return source ? { ...source, caption: '', captionContent: null, link: imageLinkFrom(img), align: 'center' } : false;
 }
 
 /**

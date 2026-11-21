@@ -13,34 +13,37 @@ Node types are `camelCase` names such as `codeBlock` and `linkCard`. Ids (`id`) 
 
 In the Feature column, `core` means the node is always in the schema.
 
-| Node                       | Feature                                          | Attributes                             |
-| -------------------------- | ------------------------------------------------ | -------------------------------------- |
-| `doc`                      | core                                             | none. The top node.                    |
-| `text`                     | core                                             | none. Holds the string and the marks.  |
-| `paragraph`                | core                                             | `textAlign`                            |
-| `hardBreak`                | core                                             | none                                   |
-| `heading`                  | `heading`                                        | `level`, `textAlign`                   |
-| `blockquote`               | `blockquote`                                     | none                                   |
-| `horizontalRule`           | `horizontalRule`                                 | none                                   |
-| `bulletList`, `listItem`   | `bulletList` (`listItem` also for `orderedList`) | none                                   |
-| `orderedList`              | `orderedList`                                    | `start`, `type`                        |
-| `taskList`                 | `taskList`                                       | none                                   |
-| `taskItem`                 | `taskList`                                       | `checked`. Items can nest.             |
-| `codeBlock`                | `codeBlock`                                      | `language`                             |
-| `table`, `tableRow`        | `table`                                          | none                                   |
-| `tableHeader`, `tableCell` | `table`                                          | `colspan`, `rowspan`, `colwidth`       |
-| `mention`                  | `mention` or `hashtag`                           | `id`, `label`, `mentionSuggestionChar` |
+| Node                     | Feature                                          | Attributes                                |
+| ------------------------ | ------------------------------------------------ | ----------------------------------------- |
+| `doc`                    | core                                             | none. The top node.                       |
+| `text`                   | core                                             | none. Holds the string and the marks.     |
+| `paragraph`              | core                                             | `textAlign`                               |
+| `hardBreak`              | core                                             | none                                      |
+| `heading`                | `heading`                                        | `level`, `textAlign`, `id`                |
+| `blockquote`             | `blockquote`                                     | none                                      |
+| `horizontalRule`         | `horizontalRule`                                 | none                                      |
+| `bulletList`, `listItem` | `bulletList` (`listItem` also for `orderedList`) | none                                      |
+| `orderedList`            | `orderedList`                                    | `start`, `type`                           |
+| `taskList`               | `taskList`                                       | none                                      |
+| `taskItem`               | `taskList`                                       | `checked`. Items can nest.                |
+| `codeBlock`              | `codeBlock`                                      | `language`                                |
+| `table`, `tableRow`      | `table`                                          | none                                      |
+| `tableHeader`            | `table`                                          | `colspan`, `rowspan`, `colwidth`, `scope` |
+| `tableCell`              | `table`                                          | `colspan`, `rowspan`, `colwidth`          |
+| `mention`                | `mention` or `hashtag`                           | `id`, `label`, `mentionSuggestionChar`    |
 
 What the sanitizer does with each attribute:
 
 - `textAlign`: one of `left`, `center`, `right`, `justify`, otherwise `null` (the default start alignment). Only on `paragraph` and `heading`, and only when `textAlign` is on.
 - `level`: rounded and clamped to 1 to 4. A bad value becomes 2, so the text survives.
+- `id` (heading): an anchor for links such as `#pricing`. One token of up to 100 characters with no spaces, quotes, angle brackets or control characters, otherwise `null`. Only the first heading with a given id keeps it, and splitting a heading doesn't copy it.
 - `start` (ordered list): a whole number from 0 to 1,000,000. Default 1.
 - `type` (ordered list): one of `1`, `a`, `A`, `i`, `I`, otherwise `null`.
 - `checked`: `true` only for `true` or the string `"true"`.
 - `language`: lower-cased, must match `^[a-z0-9+#-]{1,20}$`, otherwise `null`. The code block menu offers 20 languages in the npm package and 8 in the CDN build. Highlighting loads the grammars on first use.
 - `colspan`, `rowspan`: whole numbers from 1 to 100.
 - `colwidth`: a list of positive numbers up to 4000, one per column of the span, otherwise `null`.
+- `scope` (header cell): `col`, `row`, `colgroup` or `rowgroup`, otherwise `null`. The output (`renderToHTML()` and `PostCanvasView`) puts a table's leading rows of header cells in `thead`; the editor's own HTML keeps one `tbody`.
 - `mention`: `id` and `label` are trimmed and cut to 200 characters. `label` falls back to `id`. A mention without an `id` is dropped. `mentionSuggestionChar` is `#` for a hashtag and `@` for everything else.
 
 A document holds at most 20 mentions and hashtags together (`maxMentions`). The editor stops turning typed `@` and `#` text into mentions at that count, and a document over it reports a `limit.mentions` problem.
@@ -60,6 +63,7 @@ A document holds at most 20 mentions and hashtags together (`maxMentions`). The 
 | `textStyle`   | `color`       | `color`                 |
 | `highlight`   | `highlight`   | `color`                 |
 
+- `code`: can sit inside a link, bold or any other mark, so `[`npm i`](…)` keeps its link.
 - `link`: `href` must pass `safeHref`: http, https, mailto, tel and relative URLs only, also when the scheme hides behind whitespace, entities or percent-encoding. A link with an unsafe `href` is dropped and its text stays. `target` is `_blank` or `null`. `rel` keeps only known tokens (`noopener`, `noreferrer`, `nofollow`, `ugc`, `sponsored`, `external`). With `target="_blank"`, `noopener` is always there, and an empty `rel` becomes `noopener noreferrer nofollow`.
 - `textStyle`: carries a palette colour by name. A value that is not a palette name drops the mark.
 - `highlight`: a palette colour, or `null` for the default highlight.
@@ -74,13 +78,13 @@ Text colour and highlight store a name, never hex, so themes and dark mode recol
 
 ## Media nodes
 
-Media nodes are atoms: they have no editable content, only attributes. Every picture shares the attributes of `MediaSource`.
+Media nodes are atoms: they have no editable content, only attributes. An image's caption is edited in place under the picture, with its own small editor. Every picture shares the attributes of `MediaSource`.
 
-| Node      | Feature   | Attributes                                                       |
-| --------- | --------- | ---------------------------------------------------------------- |
-| `image`   | `image`   | `id`, the `MediaSource` fields, `caption`, `align`               |
-| `gallery` | `gallery` | `id`, `layout`, `photos`, `caption`                              |
-| `file`    | `file`    | `id`, `src`, `name`, `size`, `mimeType`, `uploadId`, `uploadKey` |
+| Node      | Feature   | Attributes                                                                   |
+| --------- | --------- | ---------------------------------------------------------------------------- |
+| `image`   | `image`   | `id`, the `MediaSource` fields, `caption`, `captionContent`, `link`, `align` |
+| `gallery` | `gallery` | `id`, `layout`, `photos`, `caption`                                          |
+| `file`    | `file`    | `id`, `src`, `name`, `size`, `mimeType`, `uploadId`, `uploadKey`             |
 
 The `MediaSource` fields are `src`, `width`, `height`, `alt`, `srcset`, `placeholder`, `uploadId` and `uploadKey`. A gallery photo has them plus a `key` and a `place`. The field-by-field types are on the [types page](/docs/reference/types#document-attributes).
 
@@ -95,6 +99,8 @@ Rules for a picture (`image` and every gallery photo):
 - `uploadId`: a plain token (letters, digits and `. : @ / + = -`, up to 200 characters), otherwise `null`.
 - `uploadKey`: always cleared. It marks an upload that is running or failed, and is never saved.
 - `align` (image): one of `center`, `wide`, `full`, `left`, `right`. Anything else becomes `center`.
+- `captionContent` (image): the caption with its formatting, as inline JSON: `text` pieces with `bold`, `italic`, `underline`, `strike`, `code` and `link` marks (the ones your features allow), and `hardBreak` pieces. Links follow the `link` mark's rules. It's cut to 1,000 characters and 20 line breaks, and it's `null` for a caption with no formatting. When it's set, the output shows it and `caption` holds its plain text, so search, alt fallbacks and plain-text output still work.
+- `link` (image): where the picture links to, `{ href, target, rel }` with the `link` mark's rules, or `null`. The output wraps the picture in `a.pc-image__link`.
 
 Rules for a gallery:
 
